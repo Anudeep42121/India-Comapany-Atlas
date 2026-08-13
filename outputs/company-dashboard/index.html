@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>India Company Atlas</title>
+  <link rel="preconnect" href="https://unpkg.com" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="data-manifest.js"></script>
+  <script src="dashboard-data.js"></script>
+  <style>
+    :root {
+      --ink:#d4e8e2;
+      --muted:#8ab8ae;
+      --line:rgba(255,255,255,0.08);
+      --panel:#122820;
+      --bg:#0d2420;
+      --bg-2:#163830;
+      --accent:#3ecfb2;
+      --accent-strong:#2ec4a9;
+      --accent-soft:rgba(62,207,178,0.16);
+      --accent-glow:rgba(62,207,178,0.2);
+      --surface:#163028;
+      --surface-2:#1c3c32;
+      --text-strong:#f5f0e8;
+      --orange:#3ecfb2;
+    }
+    [data-theme="light"] {
+      --ink:#1a2e2a;
+      --muted:#5a8a7e;
+      --line:rgba(13,36,32,0.08);
+      --panel:#ffffff;
+      --bg:#ffffff;
+      --bg-2:#f5f5f5;
+      --accent:#1a9e88;
+      --accent-strong:#0d7a66;
+      --accent-soft:rgba(26,158,136,0.12);
+      --accent-glow:rgba(26,158,136,0.14);
+      --surface:#ffffff;
+      --surface-2:#f5f5f5;
+      --text-strong:#1a2e2a;
+      --orange:#1a9e88;
+    }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; font:14px Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif; color:var(--ink); background:linear-gradient(135deg, var(--bg) 0%, var(--bg-2) 100%); position:relative; overflow-x:hidden; }
+    body::before, body::after { content:''; position:absolute; inset:0; pointer-events:none; z-index:-1; }
+    body::before { opacity:0.05; background-image:radial-gradient(circle at 12% 18%, rgba(62,207,178,0.06) 0, transparent 9%), radial-gradient(circle at 34% 26%, rgba(255,255,255,0.05) 0, transparent 7%), radial-gradient(circle at 68% 14%, rgba(255,255,255,0.04) 0, transparent 8%), radial-gradient(circle at 16% 72%, rgba(255,255,255,0.03) 0, transparent 10%), radial-gradient(circle at 46% 62%, rgba(62,207,178,0.05) 0, transparent 8%), radial-gradient(circle at 78% 74%, rgba(255,255,255,0.03) 0, transparent 9%), linear-gradient(120deg, rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(95deg, rgba(62,207,178,0.03) 1px, transparent 1px), linear-gradient(155deg, rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(75deg, rgba(255,255,255,0.015) 1px, transparent 1px); background-size:14% 20%, 10% 14%, 12% 12%, 15% 18%, 10% 14%, 12% 12%, 38% 22%, 45% 28%, 32% 18%, 40% 22%; background-position:12% 18%, 34% 26%, 68% 14%, 16% 72%, 46% 62%, 78% 74%, 30% 36%, 75% 18%, 56% 68%, 18% 52%; background-repeat:no-repeat; animation:float-slow-1 34s ease-in-out infinite alternate; }
+    body::after { opacity:0.04; background-image:radial-gradient(circle at 22% 12%, rgba(255,255,255,0.05) 0, transparent 8%), radial-gradient(circle at 84% 45%, rgba(62,207,178,0.04) 0, transparent 10%), radial-gradient(circle at 48% 86%, rgba(255,255,255,0.03) 0, transparent 9%), linear-gradient(140deg, rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(100deg, rgba(62,207,178,0.02) 1px, transparent 1px); background-size:16% 16%, 12% 14%, 10% 10%, 50% 32%, 42% 26%; background-position:22% 12%, 84% 45%, 48% 86%, 26% 18%, 68% 76%; background-repeat:no-repeat; filter:blur(1px); animation:float-slow-2 40s ease-in-out infinite alternate; }
+    .topbar { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:14px; padding:14px 28px; background:color-mix(in srgb, var(--surface) 94%, transparent); border-bottom:1px solid rgba(255,255,255,0.08); box-shadow:0 18px 44px rgba(0,0,0,.12); position:relative; z-index:5; }
+    .topbar-brand { display:flex; align-items:center; gap:10px; color:var(--muted); }
+    .brand { color:var(--accent-strong); font-size:18px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
+    .nav-text { color:var(--muted); font-size:13px; letter-spacing:.08em; text-transform:uppercase; }
+    .topbar-controls { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+    select, .search, .theme-toggle { border:1px solid var(--line); border-radius:14px; background:var(--surface); color:var(--ink); font:inherit; transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease, background .25s ease; }
+    select { min-width:150px; max-width:220px; padding:0 16px; height:42px; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23333444' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:calc(100% - 14px) center; background-size:12px 8px; }
+    .header-controls { display:flex; align-items:center; gap:10px; flex:1 1 260px; justify-content:flex-end; min-width:0; }
+    .search-box { position:relative; display:flex; align-items:center; flex:1 1 300px; max-width:300px; min-width:0; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:16px; padding:0 14px 0 16px; box-shadow:0 14px 32px rgba(0,0,0,0.08); height:42px; }
+    .search-icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:15px; pointer-events:none; }
+    .search-box .search { border:none; background:transparent; color:var(--ink); width:100%; min-width:0; font:inherit; font-size:13px; height:100%; padding:0 14px 0 36px; outline:none; }
+    .theme-toggle { width:44px; height:44px; display:flex; align-items:center; justify-content:center; background:var(--surface); color:var(--ink); font-size:17px; border-radius:50%; border:1px solid var(--line); transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease, background .25s ease; }
+    .theme-toggle:hover, select:focus, .search:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow); transform:translateY(-1px); }
+    .layout { display:grid; grid-template-columns:minmax(320px,45%) minmax(360px,55%); min-height:calc(100vh - 108px); gap:24px; padding:24px 32px; }
+    .map-pane { position:relative; background:linear-gradient(180deg, rgba(10,13,18,0.95), rgba(24,31,45,0.95)); border-radius:28px; overflow:hidden; border:1px solid rgba(255,255,255,0.06); box-shadow:0 32px 72px rgba(0,0,0,0.16); min-height:calc(100vh - 156px); } 
+    #map { height:100%; min-height:520px; width:100%; }
+    .map-note { position:absolute; z-index:500; bottom:24px; left:24px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); border-radius:18px; box-shadow:0 18px 36px rgba(0,0,0,.14); padding:14px 18px; color:var(--muted); max-width:300px; backdrop-filter:blur(14px); }
+    .map-note strong { color:var(--text-strong); display:block; margin-bottom:6px; } .map-key { display:flex; align-items:center; gap:8px; } .key-dot { width:10px; height:10px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 4px rgba(62,207,178,0.12); }
+    .details { position:relative; padding:28px; overflow:auto; max-height:calc(100vh - 108px); background:rgba(255,255,255,0.02); border-radius:28px; border:1px solid rgba(255,255,255,0.08); box-shadow:0 26px 64px rgba(0,0,0,0.1); }
+    .details::before { content:''; position:absolute; inset:0; opacity:0.06; pointer-events:none; background-image:radial-gradient(circle at 16% 20%, rgba(62,207,178,0.18) 0, transparent 8%), radial-gradient(circle at 60% 12%, rgba(62,207,178,0.16) 0, transparent 10%), radial-gradient(circle at 82% 78%, rgba(62,207,178,0.12) 0, transparent 9%), linear-gradient(135deg, rgba(62,207,178,0.05) 1px, transparent 1px), linear-gradient(45deg, rgba(62,207,178,0.05) 1px, transparent 1px); background-size:220px 220px, 180px 180px, 240px 240px, 120px 120px, 120px 120px; animation:drift 28s linear infinite; }
+    .details > * { position:relative; }
+    .eyebrow { color:var(--accent-strong); text-transform:uppercase; letter-spacing:.12em; font-weight:750; font-size:11px; margin-bottom:10px; }
+    h1 { margin:0 0 10px; font-size:28px; letter-spacing:-.03em; color:var(--text-strong); line-height:1.1; }
+    .sub { color:var(--muted); margin:0 0 24px; line-height:1.6; max-width:680px; }
+    .stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-bottom:22px; }
+    .stat { background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:18px 20px; min-height:112px; display:flex; flex-direction:column; justify-content:center; gap:8px; }
+    .stat b { display:block; font-size:22px; color:var(--text-strong); } .stat span { color:var(--muted); font-size:12px; letter-spacing:.02em; }
+    .filters { margin:0 0 18px; }
+    .filters select { width:100%; max-width:260px; height:44px; font-size:14px; padding:0 12px; }
+    .result-label { color:var(--muted); font-size:13px; margin:0 0 14px; }
+    .list { display:grid; gap:14px; }
+    .company { background:var(--panel); border:1px solid rgba(255,255,255,0.06); border-radius:22px; padding:24px; transition:transform .26s ease, box-shadow .26s ease, border-color .26s ease; min-height:170px; display:flex; flex-direction:column; justify-content:space-between; }
+    .company:hover { border-color:rgba(62,207,178,0.22); transform:translateY(-3px); box-shadow:0 24px 48px rgba(0,0,0,0.12); }
+    .company-head { display:flex; justify-content:space-between; gap:14px; align-items:flex-start; }
+    .company h3 { margin:0; font-size:16px; color:var(--text-strong); line-height:1.35; }
+    .company a { color:var(--accent-strong); text-decoration:none; font-weight:650; font-size:12px; overflow-wrap:anywhere; }
+    .tag { background:var(--accent-soft); color:var(--accent-strong); padding:6px 12px; border-radius:999px; font-size:11px; white-space:nowrap; }
+    .company p { margin:12px 0 0; color:var(--muted); line-height:1.55; font-size:13px; }
+    .meta { display:flex; flex-wrap:wrap; gap:10px; color:var(--muted); font-size:11px; margin-top:14px; }
+    .meta span { background:rgba(255,255,255,0.04); border-radius:10px; padding:7px 10px; }
+    .founders { border-top:1px solid var(--line); margin-top:16px; padding-top:14px; }
+    .founders b { font-size:11px; color:var(--text-strong); letter-spacing:.01em; }
+    .founder { margin-top:6px; font-size:12px; color:var(--ink); }
+    .founder em { color:var(--muted); font-style:normal; }
+    .empty { padding:28px; text-align:center; color:var(--muted); background:var(--panel); border:1px dashed rgba(255,255,255,0.12); border-radius:20px; }
+    .leaflet-container { background:#f7f8fb; font-family:inherit; }
+    .leaflet-control-attribution { display:none; }
+    .leaflet-control-zoom, .leaflet-bar { border-radius:14px; overflow:hidden; box-shadow:0 14px 34px rgba(0,0,0,0.12); background:rgba(255,255,255,0.96); }
+    .leaflet-bar a { color:#1a2e2a; font-weight:700; width:38px; height:38px; line-height:36px; }
+    .leaflet-control-zoom a:hover { background:rgba(62,207,178,0.08); }
+    .state-label { background:rgba(255,255,255,0.95) !important; border-radius:999px !important; padding:0 8px !important; box-shadow:0 10px 26px rgba(0,0,0,0.09) !important; }
+    .state-label span { display:inline-block; color:#1a2a3a; font:600 11px/1 Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif; white-space:nowrap; pointer-events:none; letter-spacing:0.04em; }
+    .state-label.label-selected span { color:#1a9e88; font-size:12px; font-weight:700; }
+    .details, .map-pane, .company, .search-box, select, .theme-toggle { transition:all .22s ease; }
+    .details { scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.16) transparent; }
+    .details::-webkit-scrollbar { width:10px; }
+    .details::-webkit-scrollbar-track { background:transparent; }
+    .details::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.16); border-radius:999px; border:2px solid transparent; background-clip:content-box; }
+    .details::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,0.22); }
+    @keyframes drift { from { transform:translateY(0) translateX(0); } to { transform:translateY(-18px) translateX(18px); } }
+    @keyframes float-slow-1 { from { transform:translate3d(-2px,-2px,0); } to { transform:translate3d(2px,3px,0); } }
+    @keyframes float-slow-2 { from { transform:translate3d(3px,2px,0); } to { transform:translate3d(-3px,-2px,0); } }
+    @media (max-width:1080px) { .layout { grid-template-columns:1fr; padding:20px 24px; } .map-pane { min-height:48vh; } .details { max-height:none; padding:26px; } .topbar { padding:14px 20px; } }
+    @media (max-width:700px) { .topbar { justify-content:center; gap:12px; padding:14px 16px; } .header-controls { width:100%; justify-content:center; } .search-box { max-width:100%; } .topbar select { min-width:140px; } .layout { padding:18px 16px; } .map-pane { min-height:40vh; } .details { padding:22px 18px; } .stats { grid-template-columns:1fr; } .filters select { max-width:100%; } }
+  </style>
+</head>
+<body>
+  <header class="topbar"><div class="topbar-brand"><div class="brand">India</div><div class="crumb">/</div><div class="nav-text">Company Atlas</div></div><div class="topbar-controls"><select id="stateSelect"><option value="">Select state</option></select><select id="districtSelect" disabled><option value="">Select district</option></select><div class="header-controls"><div class="search-box"><span class="search-icon">🔎</span><input class="search" id="search" placeholder="Search company, founder or sector" /></div><button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme">☀️</button></div></div></header>
+  <main class="layout"><section class="map-pane"><div id="map"></div><div class="map-note"><strong>Explore the company atlas</strong><div class="map-key"><i class="key-dot"></i> Select a state or district</div></div></section>
+  <aside class="details"><div class="eyebrow">Regional company intelligence</div><h1 id="title">Choose a state</h1><p class="sub" id="subtitle">Select a state from the map or the menu to explore its business ecosystem.</p><div class="stats"><div class="stat"><b id="companyCount">—</b><span>Companies</span></div><div class="stat"><b id="founderCount">—</b><span>Founders matched</span></div><div class="stat"><b id="sectorCount">—</b><span>Sectors</span></div></div><div class="filters"><select id="sectorSelect"><option value="">All sectors</option></select></div><div class="result-label" id="resultLabel">No state selected</div><div class="list" id="companyList"><div class="empty">Select Telangana and Hyderabad to view the supplied company dataset.</div></div></aside></main>
+  <script>
+  const data = (window.DASHBOARD_DATA || {companies:[]}).companies;
+  let fullDataLoaded = false;
+  function loadFullData(){
+    if(fullDataLoaded) return;
+    fullDataLoaded = true;
+    const total = window.__DATA_CHUNKS || 0;
+    if(!total) return;
+    let loaded = 0;
+    for(let i=0;i<total;i++){
+      const s=document.createElement('script');
+      s.src=`https://webdesign2131.github.io/India-Company-Atlas/data-chunk-${i}.js`;
+      s.onload=()=>{
+        const chunk=window[`__CHUNK_${i}`];
+        if(chunk){
+          const existing=new Set(data.map(c=>c.name.toLowerCase()));
+          chunk.forEach(c=>{ if(!existing.has((c.name||'').toLowerCase())) data.push(c); });
+          delete window[`__CHUNK_${i}`];
+        }
+        loaded++;
+        if(loaded===total){ rebuildDistrictCounts(); update(); console.log('All chunks loaded, total:',data.length); }
+      };
+      document.head.appendChild(s);
+    }
+  }
+  let chosenState='', chosenDistrict='', mapLayer, districtLayer, indiaGeo, districts=[], states=[], navLevel='india', indiaBounds;
+  const $=id=>document.getElementById(id), fmt=n=>new Intl.NumberFormat('en-IN').format(n), esc=s=>String(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  const themeToggle = $('themeToggle');
+  function applyTheme(theme){ document.body.dataset.theme = theme; themeToggle.textContent = theme === 'light' ? '🌙' : '☀️'; }
+  const savedTheme = localStorage.getItem('dashboardTheme') || 'dark';
+  applyTheme(savedTheme);
+  themeToggle.addEventListener('click', ()=>{ const next = document.body.dataset.theme === 'light' ? 'dark' : 'light'; applyTheme(next); localStorage.setItem('dashboardTheme', next); });
+  const map=L.map('map',{zoomControl:true,scrollWheelZoom:true,fadeAnimation:true,zoomAnimation:true,preferCanvas:true}).setView([22.6,79.7],5);
+  map.zoomControl.setPosition('topleft');
+  map.createPane('statePane').style.zIndex=450;
+  map.createPane('districtPane').style.zIndex=475;
+  map.createPane('labelPane').style.zIndex=500;
+  const labelLayer = L.layerGroup().addTo(map);
+  const SHORT_NAMES = {'Jammu & Kashmir':'J&K','Andaman & Nicobar Islands':'A&N Islands','Dadra & Nagar Haveli and Daman & Diu':'Dadra & Diu','Dadra and Nagar Haveli':'Dadra & NH','Daman and Diu':'Daman & Diu','Arunachal Pradesh':'Arunachal Pr.','Himachal Pradesh':'Himachal Pr.'};
+  const FOCUS_STATES = new Set(['Telangana','Andhra Pradesh','Karnataka','Tamil Nadu']);
+  let focusBounds = null;
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',{maxZoom:10,attribution:''}).addTo(map);
+  const districtCounts=new Map();
+  function rebuildDistrictCounts(){ districtCounts.clear(); data.forEach(c=>{const key=`${normalizeState(c.state)}|${String(c.district||'').toLowerCase()}`; districtCounts.set(key,(districtCounts.get(key)||0)+1);}); }
+  rebuildDistrictCounts();
+  const countFor=(state,district)=>districtCounts.get(`${normalizeState(state)}|${String(district||'').toLowerCase()}`)||0;
+  const heatColor=count=>count===0?'#163028':count<25?'#1a4a3a':count<100?'#1a9e88':count<500?'#2ec4a9':'#3ecfb2';
+  const countLabel=count=>`${fmt(count)} ${count===1?'company':'companies'}`;
+  function seedIllustrativeSMEs(geo){ const sectors=['AgriTech','FinTech','HealthTech','Retail','EdTech','CleanTech','Logistics Tech','Business Services']; const suffixes=['Enterprise Labs','Digital Works','Green Solutions','Supply Network']; const firstNames=['Aarav','Diya','Kabir','Meera','Rohan','Anaya','Ishaan','Kavya']; const existing=new Set(data.map(c=>`${normalizeState(c.state)}|${String(c.district||'').toLowerCase()}`)); geo.features.forEach(f=>{const state=normalizeState(f.properties.st_nm), district=String(f.properties.district||'').toLowerCase().replace(/\b\w/g,x=>x.toUpperCase()); if(!state||!district||existing.has(`${state}|${district.toLowerCase()}`)) return; const seed=[...`${state}${district}`].reduce((n,ch)=>n+ch.charCodeAt(0),0); const total=(seed%3)+1; for(let i=0;i<total;i++){const sector=sectors[(seed+i)%sectors.length], name=`${district} ${suffixes[(seed+i)%suffixes.length]}`; data.push({name,domain:`${district.toLowerCase().replace(/[^a-z0-9]+/g,'')}-${i+1}.example`,state,district,city:district,founded:String(2015+(seed+i)%10),sector,stage:'Demo SME',funded:i%2?'No':'Yes',funding:'',employees:String(8+(seed+i)%80),website:'',linkedin:'',description:`Illustrative SME record for the ${district}, ${state} ecosystem.`,founders:[{name:firstNames[(seed+i)%firstNames.length]+' Sharma',title:'Founder & CEO',linkedin:''}],isDemo:true}); }}); rebuildDistrictCounts(); }
+  function normalizeState(raw){ return String(raw||'').trim() === 'Telangana' ? 'Telangana' : String(raw||'').trim(); }
+  function featureName(properties){ return normalizeState(properties.NAME_1||properties.ST_NM||properties.st_nm||properties.State_Name||properties.state||properties.name||properties.Name); }
+  function districtName(layer){ return String(layer.feature.properties.D_N||layer.feature.properties.DISTRICT||layer.feature.properties.district||'').toLowerCase().replace(/\b\w/g,x=>x.toUpperCase()); }
+  function refreshDistrictMenu(){ $('districtSelect').innerHTML='<option value="">All districts</option>'+districts.map(d=>`<option value="${esc(d)}">${esc(d)}</option>`).join(''); }
+  function refreshStateMenu(){ $('stateSelect').innerHTML='<option value="">Select state</option>'+states.filter(s=>FOCUS_STATES.has(s)).map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join(''); }
+  const districtLayerCache = {};
+  function featureCentroid(feature){ if(!feature||!feature.geometry) return null; const bounds = L.geoJSON(feature).getBounds(); const center = bounds.getCenter(); return [center.lat, center.lng]; }
+  function getPixelBounds(feature){ if(!feature||!feature.geometry) return null; try{ const b=L.geoJSON(feature).getBounds(); const sw=map.latLngToContainerPoint(b.getSouthWest()); const ne=map.latLngToContainerPoint(b.getNorthEast()); return {x:Math.min(sw.x,ne.x),y:Math.min(sw.y,ne.y),w:Math.abs(ne.x-sw.x),h:Math.abs(ne.y-sw.y)}; }catch(e){return null;} }
+  function createStateLabels(geo){ labelLayer.clearLayers(); if(!geo) return; const zoom=map.getZoom(); const placed=[]; geo.features.forEach(feature=>{ if(feature.properties&&feature.properties.district) return; const state=featureName(feature.properties); if(!FOCUS_STATES.has(state)) return; const centroid=featureCentroid(feature); if(!state||!centroid||centroid.length<2) return; const pb=getPixelBounds(feature); if(!pb) return; const isSelected=chosenState&&normalizeState(state)===chosenState; if(chosenState&&!isSelected) return; const minPx=isSelected?0:zoom<5?60:zoom<6?40:20; if(!isSelected&&(pb.w<minPx||pb.h<minPx)) return; const label=SHORT_NAMES[state]||state; const estW=label.length*7+8; const estH=14; const cp=map.latLngToContainerPoint([centroid[0],centroid[1]]); const rect={x:cp.x-estW/2,y:cp.y-estH/2,w:estW,h:estH}; if(!isSelected){ const overlaps=placed.some(r=>!(rect.x+rect.w<r.x||rect.x>r.x+r.w||rect.y+rect.h<r.y||rect.y>r.y+r.h)); if(overlaps) return; } placed.push(rect); const cls='state-label'+(isSelected?' label-selected':''); labelLayer.addLayer(L.marker([centroid[0],centroid[1]],{pane:'labelPane',interactive:false,icon:L.divIcon({className:cls,html:`<span>${esc(label)}</span>`,iconSize:[estW,estH],iconAnchor:[estW/2,estH/2]})})); }); }
+  const stateStyle = feature=>({color:'#8ab8ae',weight:2,fillColor:'rgba(248,250,252,0.98)',fillOpacity:1,opacity:0.98,stroke:true,fill:true,lineCap:'round',lineJoin:'round',smoothFactor:1});
+  const fadedStateStyle = feature=>({color:'#a8c4be',weight:1.8,fillColor:'rgba(255,255,255,0.94)',fillOpacity:1,opacity:0.68,stroke:true,fill:true,lineCap:'round',lineJoin:'round',smoothFactor:1});
+  const lockedStateStyle = {color:'#c8d8d4',weight:1,fillColor:'rgba(240,242,245,0.6)',fillOpacity:0.6,opacity:0.4,stroke:true,fill:true,lineCap:'round',lineJoin:'round',smoothFactor:1};
+  function applyStateSelectionStyle(){ if(!mapLayer) return; mapLayer.eachLayer(l=>{ const layerState=normalizeState(featureName(l.feature.properties)); if(!FOCUS_STATES.has(layerState)){ l.setStyle(lockedStateStyle); return; } const selected=chosenState && layerState===chosenState; l.setStyle(selected?{color:'#3ecfb2',weight:2.4,fillColor:'rgba(62,207,178,0.16)',fillOpacity:0.18,opacity:1,stroke:true,fill:true,lineCap:'round',lineJoin:'round',smoothFactor:1}:chosenState?fadedStateStyle(l.feature):stateStyle(l.feature)); }); }
+  function makeStateLayer(state){ if(!indiaGeo) return; if(districtLayerCache[state]){ districtLayer=districtLayerCache[state]; } else { districtLayer=L.geoJSON(indiaGeo,{pane:'districtPane',filter:f=>normalizeState(featureName(f.properties))===state&&Boolean(f.properties.district),style:{color:'rgba(138,184,174,0.9)',weight:1.05,fillColor:'transparent',fillOpacity:0,opacity:0.95,lineCap:'round',lineJoin:'round',smoothFactor:1},onEachFeature:(f,l)=>{const name=districtName(l), count=countFor(state,name); l.bindTooltip(`${name} · ${countLabel(count)}`,{sticky:true}); l.on({mouseover:()=>{ if(navLevel==='state') l.setStyle({color:'#3ecfb2',weight:1.8}); },mouseout:()=>{ if(navLevel==='state') districtLayer.resetStyle(l); },click:()=>selectDistrict(name)});}}); districtLayerCache[state]=districtLayer; }
+    districts=[...new Set(districtLayer.getLayers().map(districtName).filter(Boolean))].sort(); }
+  function selectState(name){
+    loadFullData();
+    const newState=normalizeState(name);
+    if(!newState){ goBack(); return; }
+    if(newState===chosenState && navLevel==='state'){ return; }
+    chosenState=newState; chosenDistrict=''; navLevel='state';
+    $('stateSelect').value=chosenState; $('districtSelect').disabled=false;
+    makeStateLayer(chosenState); refreshDistrictMenu(); applyStateSelectionStyle(); createStateLabels(indiaGeo);
+    const selectedLayer=mapLayer.getLayers().find(l=>normalizeState(featureName(l.feature.properties))===chosenState);
+    if(selectedLayer){
+      const bounds=selectedLayer.getBounds();
+      map.once('zoomend',()=>{ if(districtLayer && !map.hasLayer(districtLayer)) districtLayer.addTo(map); });
+      map.flyToBounds(bounds,{padding:[40,40],maxZoom:7,animate:true,duration:0.5});
+    } else if(districtLayer && !map.hasLayer(districtLayer)){ districtLayer.addTo(map); }
+    update();
+  }
+  function selectDistrict(name){
+    if(!name){ if(navLevel==='district') goBack(); return; }
+    chosenDistrict=name; navLevel='district';
+    $('districtSelect').value=name;
+    labelLayer.clearLayers();
+    let targetBounds=null;
+    if(districtLayer){ districtLayer.eachLayer(l=>{ const sel=districtName(l)===name; l.setStyle({color:sel?'#3ecfb2':'rgba(138,184,174,0.55)',weight:sel?2:0.8,fillColor:sel?'rgba(62,207,178,0.18)':'transparent',fillOpacity:sel?0.18:0}); if(sel) targetBounds=l.getBounds(); }); }
+    if(targetBounds) map.flyToBounds(targetBounds,{padding:[60,60],maxZoom:9,animate:true,duration:0.5});
+    update();
+  }
+  function goBack(){
+    if(navLevel==='district'){
+      chosenDistrict=''; navLevel='state';
+      $('districtSelect').value='';
+      if(districtLayer){ districtLayer.eachLayer(l=>districtLayer.resetStyle(l)); }
+      const selectedLayer=mapLayer.getLayers().find(l=>normalizeState(featureName(l.feature.properties))===chosenState);
+      if(selectedLayer) map.flyToBounds(selectedLayer.getBounds(),{padding:[40,40],maxZoom:7,animate:true,duration:0.5});
+      createStateLabels(indiaGeo); update();
+    } else {
+      chosenState=''; chosenDistrict=''; navLevel='india';
+      $('stateSelect').value=''; $('districtSelect').value=''; $('districtSelect').disabled=true;
+      if(districtLayer){ map.removeLayer(districtLayer); districtLayer=null; }
+      if(mapLayer) mapLayer.eachLayer(l=>{ const s=normalizeState(featureName(l.feature.properties)); l.setStyle(FOCUS_STATES.has(s)?stateStyle(l.feature):lockedStateStyle); });
+      createStateLabels(indiaGeo);
+      if(focusBounds) map.flyToBounds(focusBounds,{padding:[24,24],animate:true,duration:0.5});
+      update();
+    }
+  }
+  $('stateSelect').onchange=e=>selectState(e.target.value); $('districtSelect').onchange=e=>selectDistrict(e.target.value); $('search').oninput=update; $('sectorSelect').onchange=update;
+  const sectorKey=c=>(c.sector||'Unclassified').split(',')[0].split('>')[0].trim()||'Unclassified';
+  function filtered(){ const q=$('search').value.toLowerCase().trim(), sector=$('sectorSelect').value; return data.filter(c=>c.state===chosenState && (!chosenDistrict||c.district===chosenDistrict) && (!sector||sectorKey(c)===sector) && (!q||[c.name,c.domain,c.sector,...(c.founders||[]).map(f=>f.name+' '+f.title)].join(' ').toLowerCase().includes(q))); }
+  function update(){ const all=data.filter(c=>c.state===chosenState && (!chosenDistrict||c.district===chosenDistrict)); const sectors=[...new Set(all.map(sectorKey))].sort(); const keep=$('sectorSelect').value; $('sectorSelect').innerHTML='<option value="">All sector domains</option>'+sectors.map(s=>`<option ${s===keep?'selected':''} value="${esc(s)}">${esc(s)}</option>`).join(''); const rows=filtered(), founders=new Set(rows.flatMap(c=>(c.founders||[]).map(f=>f.name))).size; $('companyCount').textContent=chosenState?fmt(all.length):'—'; $('founderCount').textContent=chosenState?fmt(founders):'—'; $('sectorCount').textContent=chosenState?fmt(sectors.length):'—'; const place=chosenDistrict?`${chosenDistrict}, ${chosenState}`:chosenState; $('title').textContent=chosenState?place:'Choose a state'; $('subtitle').textContent=chosenState?'':'Select a state from the map or the menu to explore its business ecosystem.'; $('resultLabel').textContent=chosenState?`${fmt(rows.length)} companies shown${chosenDistrict?' in '+chosenDistrict:''}`:'No state selected'; $('companyList').innerHTML=rows.length?rows.slice(0,100).map(c=>`<article class="company"><div class="company-head"><div><h3>${esc(c.name)}</h3>${c.website?`<a target="_blank" rel="noreferrer" href="${esc(c.website.startsWith('http')?c.website:'https://'+c.website)}">${esc(c.domain||c.website)}</a>`:''}</div>${c.stage?`<span class="tag">${esc(c.stage)}</span>`:''}</div>${c.description?`<p>${esc(c.description)}</p>`:''}<div class="meta"><span>Sector: ${esc(sectorKey(c))}</span>${c.domain?`<span>Domain: ${esc(c.domain)}</span>`:''}${c.founded?`<span>Founded ${esc(c.founded)}</span>`:''}${c.employees?`<span>${esc(c.employees)} employees</span>`:''}${c.funded==='Yes'?'<span>Funded</span>':''}</div>${(c.founders||[]).length?`<div class="founders"><b>Founders / leadership</b>${c.founders.map(f=>`<div class="founder">${f.linkedin?`<a target="_blank" rel="noreferrer" href="${esc(f.linkedin)}">${esc(f.name)}</a>`:esc(f.name)} ${f.title?`<em>· ${esc(f.title)}</em>`:''}</div>`).join('')}</div>`:''}</article>`).join('')+(rows.length>100?`<div class="empty">Showing the first 100 matches. Refine the filters to focus the list.</div>`:''):`<div class="empty">No company records are available in this district.</div>`; }
+  fetch('https://raw.githubusercontent.com/udit-001/india-maps-data/master/geojson/india.geojson').then(r=>r.json()).then(geo=>{
+    indiaGeo=geo;
+    states=[...new Set(geo.features.filter(f=>!f.properties.district).map(f=>featureName(f.properties)).filter(Boolean))].sort();
+    refreshStateMenu();
+    mapLayer=L.geoJSON(geo,{pane:'statePane',filter:f=>Boolean(f.properties.st_nm)&&!f.properties.district,style:f=>{ const s=featureName(f.properties); return FOCUS_STATES.has(s)?stateStyle(f):lockedStateStyle; },onEachFeature:(f,l)=>{
+      const state=featureName(f.properties);
+      const isFocus=FOCUS_STATES.has(state);
+      if(isFocus) l.bindTooltip(state,{sticky:true,offset:[0,-8]});
+      l.on({
+        mouseover:()=>{ if(!isFocus||navLevel==='district') return; if(navLevel==='india'||normalizeState(state)!==chosenState){ l.setStyle({fillOpacity:0.18,weight:2.4}); } map.getContainer().style.cursor='pointer'; },
+        mouseout:()=>{ if(!isFocus) return; map.getContainer().style.cursor='grab'; if(chosenState) applyStateSelectionStyle(); else l.setStyle(stateStyle(f)); },
+        click:()=>{ if(!isFocus||navLevel==='district') return; if(navLevel==='state'&&normalizeState(state)===chosenState) return; selectState(state); }
+      });
+    }}).addTo(map);
+    createStateLabels(geo);
+    const focusLayers=mapLayer.getLayers().filter(l=>FOCUS_STATES.has(featureName(l.feature.properties)));
+    if(focusLayers.length){ let b=focusLayers[0].getBounds(); focusLayers.slice(1).forEach(l=>b.extend(l.getBounds())); focusBounds=b; map.fitBounds(focusBounds,{padding:[24,24]}); }
+    map.on('zoomend moveend',()=>{ if(navLevel!=='district') createStateLabels(indiaGeo); });
+  });
+  update();
+  </script>
+</body></html>
